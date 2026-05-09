@@ -465,18 +465,57 @@ function bindMobileNav() {
   });
 }
 
+const VIEW_PATHS = { files: "/files", compare: "/compare", records: "/records" };
+
+function pathnameToView() {
+  const path = (location.pathname || "/").replace(/\/$/, "") || "/";
+  if (path === "/" || path === "/files") return "files";
+  if (path === "/compare") return "compare";
+  if (path === "/records") return "records";
+  return "files";
+}
+
+function stripBootViewStyle() {
+  document.getElementById("boot-view-style")?.remove();
+  if (document.documentElement.dataset.bootView) delete document.documentElement.dataset.bootView;
+}
+
+/**
+ * @param {string} view
+ * @param {{ replaceUrl?: boolean; syncOnly?: boolean }} [opts]
+ */
+function applyView(view, opts = {}) {
+  const { replaceUrl = false, syncOnly = false } = opts;
+  stripBootViewStyle();
+  const v = view in VIEW_PATHS ? view : "files";
+  const targetPath = VIEW_PATHS[v];
+  document.querySelectorAll(".nav-item").forEach((b) => {
+    b.classList.toggle("active", b.getAttribute("data-view") === v);
+  });
+  document.querySelectorAll(".view").forEach((el) => el.classList.add("hidden"));
+  const panel = document.getElementById(`view-${v}`);
+  if (panel) panel.classList.remove("hidden");
+  if (v === "records") loadRecords().catch((e) => alert(e.message));
+  if (v === "compare") schedulePreviews();
+  closeMobileNav();
+  if (!syncOnly && location.pathname !== targetPath) {
+    const state = { view: v };
+    if (replaceUrl) history.replaceState(state, "", targetPath);
+    else history.pushState(state, "", targetPath);
+  }
+}
+
 function bindNav() {
-  document.querySelectorAll(".nav-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      const v = btn.getAttribute("data-view");
-      document.querySelectorAll(".view").forEach((el) => el.classList.add("hidden"));
-      $(`#view-${v}`).classList.remove("hidden");
-      if (v === "records") loadRecords().catch((e) => alert(e.message));
-      if (v === "compare") schedulePreviews();
-      closeMobileNav();
+  document.querySelectorAll(".nav-item").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      const v = el.getAttribute("data-view");
+      if (!v) return;
+      applyView(v);
     });
+  });
+  window.addEventListener("popstate", () => {
+    applyView(pathnameToView(), { syncOnly: true });
   });
 }
 
@@ -646,6 +685,7 @@ bindThemeToggle();
 
 bindMobileNav();
 bindNav();
+applyView(pathnameToView(), { replaceUrl: true });
 bindUpload();
 bindFileTableShortcuts();
 bindCompareSelectors();

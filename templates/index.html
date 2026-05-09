@@ -17,6 +17,31 @@
       }
     })();
   </script>
+  <script>
+    (function () {
+      var map = { "/": "files", "/files": "files", "/compare": "compare", "/records": "records" };
+      var path = location.pathname.replace(/\/$/, "") || "/";
+      var v = map[path];
+      if (v === undefined) {
+        v = "files";
+        if (history.replaceState) history.replaceState(null, "", "/files");
+      }
+      if (v === "files") return;
+      document.documentElement.dataset.bootView = v;
+      var st = document.createElement("style");
+      st.id = "boot-view-style";
+      st.textContent =
+        "[data-boot-view] #view-files,[data-boot-view] #view-compare,[data-boot-view] #view-records{display:none!important}" +
+        "[data-boot-view] #view-" +
+        v +
+        "{display:block!important}" +
+        "[data-boot-view] .nav-item.active{color:var(--muted);background:transparent}" +
+        '[data-boot-view] .nav-item[data-view="' +
+        v +
+        '"]{color:var(--text);background:var(--nav-active-bg)}';
+      document.head.appendChild(st);
+    })();
+  </script>
   <title>PDF / Excel 文本对比</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -36,9 +61,9 @@
       </button>
     </div>
     <nav>
-      <button type="button" class="nav-item active" data-view="files">文件管理</button>
-      <button type="button" class="nav-item" data-view="compare">文件数据对比</button>
-      <button type="button" class="nav-item" data-view="records">文件对比记录</button>
+      <a href="/files" class="nav-item active" data-view="files">文件管理</a>
+      <a href="/compare" class="nav-item" data-view="compare">文件数据对比</a>
+      <a href="/records" class="nav-item" data-view="records">文件对比记录</a>
     </nav>
   </aside>
   <main class="main">

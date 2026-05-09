@@ -160,6 +160,9 @@ nav {
   color: var(--muted);
   cursor: pointer;
   font-size: 0.95rem;
+  text-decoration: none;
+  display: block;
+  box-sizing: border-box;
 }
 
 .nav-item:hover {

@@ -76,10 +76,29 @@ def _list_record_summaries() -> list[dict]:
     return summaries
 
 
-@app.get("/", response_class=HTMLResponse)
-def index() -> HTMLResponse:
+def _index_html() -> HTMLResponse:
     html_path = BASE_DIR / "templates" / "index.html"
     return HTMLResponse(html_path.read_text(encoding="utf-8"))
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> HTMLResponse:
+    return _index_html()
+
+
+@app.get("/files", response_class=HTMLResponse)
+def index_files() -> HTMLResponse:
+    return _index_html()
+
+
+@app.get("/compare", response_class=HTMLResponse)
+def index_compare() -> HTMLResponse:
+    return _index_html()
+
+
+@app.get("/records", response_class=HTMLResponse)
+def index_records() -> HTMLResponse:
+    return _index_html()
 
 
 @app.get("/api/files")
