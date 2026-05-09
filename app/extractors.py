@@ -43,7 +43,6 @@ def extract_excel(
     path: Path,
     sheet_index: int,
     column: str | int,
-    regex_pattern: str | None,
 ) -> list[str]:
     col_idx = resolve_col_idx(column)
     df = pd.read_excel(path, sheet_name=sheet_index, header=None, dtype=object)
@@ -51,7 +50,6 @@ def extract_excel(
         return []
     series = df.iloc[:, col_idx]
     out: list[str] = []
-    pattern = re.compile(regex_pattern.strip()) if regex_pattern and regex_pattern.strip() else None
     for v in series:
         if v is None or (isinstance(v, float) and pd.isna(v)):
             s = ""
@@ -59,11 +57,6 @@ def extract_excel(
             s = str(v).strip()
         if not s:
             continue
-        if pattern:
-            m = pattern.search(s)
-            if not m:
-                continue
-            s = m.group(0).strip()
         out.append(s)
     return out
 
@@ -71,9 +64,7 @@ def extract_excel(
 def extract_pdf_lines_from_pages(
     pages_lines: list[list[str]],
     line_indices_1based: list[int],
-    regex_pattern: str | None,
 ) -> list[str]:
-    pattern = re.compile(regex_pattern.strip()) if regex_pattern and regex_pattern.strip() else None
     out: list[str] = []
     for lines in pages_lines:
         for li in line_indices_1based:
@@ -83,11 +74,6 @@ def extract_pdf_lines_from_pages(
             s = lines[idx].strip()
             if not s:
                 continue
-            if pattern:
-                m = pattern.search(s)
-                if not m:
-                    continue
-                s = m.group(0).strip()
             out.append(s)
     return out
 
@@ -95,7 +81,6 @@ def extract_pdf_lines_from_pages(
 def extract_pdf(
     path: Path,
     line_indices_1based: list[int],
-    regex_pattern: str | None,
     *,
     stored_name: str | None = None,
 ) -> list[str]:
@@ -103,29 +88,23 @@ def extract_pdf(
     name = stored_name or path.name
     cached = load_pdf_lines_cache(name)
     if cached is not None:
-        return extract_pdf_lines_from_pages(cached, line_indices_1based, regex_pattern)
+        return extract_pdf_lines_from_pages(cached, line_indices_1based)
     pages_lines: list[list[str]] = []
     with pdfplumber.open(path) as pdf:
         for page in pdf.pages:
             text = page.extract_text() or ""
             pages_lines.append(text.splitlines())
-    return extract_pdf_lines_from_pages(pages_lines, line_indices_1based, regex_pattern)
+    return extract_pdf_lines_from_pages(pages_lines, line_indices_1based)
 
 
-def extract_text_file(path: Path, regex_pattern: str | None) -> list[str]:
+def extract_text_file(path: Path) -> list[str]:
     raw = path.read_text(encoding="utf-8", errors="replace")
     lines = raw.splitlines()
-    pattern = re.compile(regex_pattern.strip()) if regex_pattern and regex_pattern.strip() else None
     out: list[str] = []
     for line in lines:
         s = line.strip()
         if not s:
             continue
-        if pattern:
-            m = pattern.search(s)
-            if not m:
-                continue
-            s = m.group(0).strip()
         out.append(s)
     return out
 
@@ -134,10 +113,30 @@ def _strip_all_whitespace(s: str) -> str:
     return "".join(str(s).split())
 
 
+def _apply_remove_spaces_then_regex(
+    vals: list[str],
+    remove_spaces: bool,
+    pattern: re.Pattern[str] | None,
+) -> list[str]:
+    """先按规则移除全部空白，再执行正则（与界面说明一致：正则匹配在移除空格之后）。"""
+    out: list[str] = []
+    for s in vals:
+        t = _strip_all_whitespace(s) if remove_spaces else s
+        if pattern:
+            m = pattern.search(t)
+            if not m:
+                continue
+            t = m.group(0).strip()
+        out.append(t)
+    return out
+
+
 def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
     r = dict(rules or {})
     skip_raw = r.pop("skip_first", 0)
     remove_spaces = bool(r.pop("remove_spaces", True))
+    regex_raw = r.get("regex") or None
+    pattern = re.compile(regex_raw.strip()) if regex_raw and str(regex_raw).strip() else None
     try:
         skip = max(0, int(skip_raw))
     except (TypeError, ValueError):
@@ -149,7 +148,6 @@ def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
             path,
             int(r.get("sheet_index", 0)),
             r.get("column", "A"),
-            r.get("regex") or None,
         )
     elif kind == "pdf":
         raw_lines = r.get("line_indices") or r.get("line_indices_1based") or [1]
@@ -159,13 +157,12 @@ def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
             line_indices = [int(x) for x in raw_lines]
         if not line_indices:
             line_indices = [1]
-        vals = extract_pdf(path, line_indices, r.get("regex") or None)
+        vals = extract_pdf(path, line_indices)
     elif kind == "text":
-        vals = extract_text_file(path, r.get("regex") or None)
+        vals = extract_text_file(path)
     else:
         raise ValueError(f"不支持的文件类型: {ext}")
 
-    if remove_spaces:
-        vals = [_strip_all_whitespace(x) for x in vals]
+    vals = _apply_remove_spaces_then_regex(vals, remove_spaces, pattern)
 
     return vals[skip:]

@@ -87,7 +87,7 @@ function rulesHtml(kind, prefix) {
     return `
       <div class="field"><label>每页行号（1 开始，逗号分隔，适用于每一页）</label>
         <input type="text" id="${prefix}-lines" value="1" placeholder="例：1,2" /></div>
-      <div class="field"><label>正则（可选）</label>
+      <div class="field"><label>格式化正则（可选）</label>
         <input type="text" id="${prefix}-regex" placeholder="留空则取整行文本" /></div>
       ${skipFieldHtml(prefix)}
       ${removeSpacesFieldHtml(prefix)}
