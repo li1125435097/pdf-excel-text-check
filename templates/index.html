@@ -67,9 +67,20 @@
     </nav>
   </aside>
   <main class="main">
+    <div class="main-topbar">
+      <div class="user-menu-wrap" id="user-menu-wrap">
+        <button type="button" id="user-menu-btn" class="user-menu-btn" aria-expanded="false" aria-haspopup="menu">
+          <span id="user-menu-label" class="user-menu-label"></span>
+          <span class="user-menu-caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="user-menu-dropdown" class="user-menu-dropdown hidden" role="menu">
+          <button type="button" class="user-menu-item" role="menuitem" id="user-logout">退出登录</button>
+        </div>
+      </div>
+    </div>
     <section id="view-files" class="view">
       <h1>文件管理</h1>
-      <p class="hint">支持拖拽或点击上传；列表中可删除文件、仅修改显示名称。</p>
+      <p class="hint">支持拖拽或点击上传（单文件不超过 10MB）；列表中可删除文件、仅修改显示名称。</p>
       <div id="dropzone" class="dropzone">
         <input type="file" id="file-input" multiple hidden />
         <div id="dropzone-content" class="dropzone-content">
@@ -90,6 +101,7 @@
               <th>大小</th>
               <th>上传时间</th>
               <th>修改时间</th>
+              <th>邮箱</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -149,6 +161,7 @@
               <th>成功</th>
               <th>失败</th>
               <th>成功率</th>
+              <th>邮箱</th>
               <th>操作</th>
             </tr>
           </thead>

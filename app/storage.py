@@ -36,6 +36,7 @@ def add_file_record(
     stored_path: Path,
     size: int,
     mime: str | None,
+    owner_email: str,
 ) -> dict[str, Any]:
     data = load_meta()
     fid = str(uuid.uuid4())
@@ -50,6 +51,7 @@ def add_file_record(
         "uploaded_at": ts,
         "modified_at": ts,
         "ext": ext,
+        "owner_email": owner_email,
     }
     data.setdefault("files", []).append(rec)
     save_meta(data)

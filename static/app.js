@@ -1,5 +1,19 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 
+/** @type {{ email: string | null, is_super_admin: boolean, is_guest: boolean }} */
+let authMe = { email: null, is_super_admin: false, is_guest: false };
+
+async function ensureAuth() {
+  const r = await fetch("/api/auth/me", { credentials: "include" });
+  const me = await r.json();
+  authMe = me;
+  if (!me.email) {
+    window.location.href = "/login";
+    return false;
+  }
+  return true;
+}
+
 function formatSize(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -155,9 +169,14 @@ function collectRules(prefix, file) {
 
 async function api(path, opts = {}) {
   const r = await fetch(path, {
+    credentials: "include",
     headers: { Accept: "application/json", ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}) },
     ...opts,
   });
+  if (r.status === 401) {
+    window.location.href = "/login";
+    throw new Error("未登录");
+  }
   if (!r.ok) {
     let msg = r.statusText;
     try {
@@ -269,6 +288,7 @@ function renderFileTable() {
       <td>${formatSize(f.size)}</td>
       <td>${escapeHtml(formatBeijingTime(f.uploaded_at || ""))}</td>
       <td>${escapeHtml(formatBeijingTime(f.modified_at || ""))}</td>
+      <td>${escapeHtml(f.owner_email || "—")}</td>
       <td>
         <button type="button" class="btn small" data-rename="${f.id}" data-rename-step="view">修改名称</button>
         <button type="button" class="btn small danger" data-del="${f.id}">删除</button>
@@ -396,6 +416,7 @@ async function loadRecords() {
       <td>${r.success}</td>
       <td>${r.failed}</td>
       <td>${r.success_rate}%</td>
+      <td>${escapeHtml(r.owner_email || "—")}</td>
       <td><button type="button" class="btn small" data-record="${r.id}">详情</button></td>`;
     tb.appendChild(tr);
   }
@@ -519,6 +540,8 @@ function bindNav() {
   });
 }
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 let uploadInProgress = false;
 
 function setDropzoneUploading(on) {
@@ -569,6 +592,10 @@ async function uploadFiles(fileList) {
   setDropzoneUploading(true);
   try {
     for (const f of fileList) {
+      if (f.size > MAX_UPLOAD_BYTES) {
+        alert(`${f.name}: 单文件不能超过 10MB`);
+        continue;
+      }
       const fd = new FormData();
       fd.append("file", f);
       try {
@@ -681,12 +708,57 @@ function bindThemeToggle() {
   });
 }
 
+function renderUserBar() {
+  const label = $("#user-menu-label");
+  if (label) {
+    const base = authMe.email || "";
+    label.textContent = authMe.is_guest ? `${base}（访客）` : base;
+  }
+}
+
+function bindUserMenu() {
+  const btn = $("#user-menu-btn");
+  const menu = $("#user-menu-dropdown");
+  const logoutBtn = $("#user-logout");
+  if (!btn || !menu) return;
+
+  function closeMenu() {
+    menu.classList.add("hidden");
+    btn.setAttribute("aria-expanded", "false");
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menu.classList.contains("hidden")) {
+      menu.classList.remove("hidden");
+      btn.setAttribute("aria-expanded", "true");
+    } else {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("click", () => closeMenu());
+  menu.addEventListener("click", (e) => e.stopPropagation());
+
+  logoutBtn?.addEventListener("click", async () => {
+    try {
+      await api("/api/auth/logout", { method: "POST", body: JSON.stringify({}) });
+    } catch (_) {}
+    window.location.href = "/login";
+  });
+}
+
 bindThemeToggle();
 
-bindMobileNav();
-bindNav();
-applyView(pathnameToView(), { replaceUrl: true });
-bindUpload();
-bindFileTableShortcuts();
-bindCompareSelectors();
-refreshFiles().catch((e) => alert(e.message));
+(async () => {
+  if (!(await ensureAuth())) return;
+  renderUserBar();
+  bindUserMenu();
+  bindMobileNav();
+  bindNav();
+  applyView(pathnameToView(), { replaceUrl: true });
+  bindUpload();
+  bindFileTableShortcuts();
+  bindCompareSelectors();
+  refreshFiles().catch((e) => alert(e.message));
+})();

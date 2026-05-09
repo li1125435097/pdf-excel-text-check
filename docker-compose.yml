@@ -1,6 +1,8 @@
 services:
   web:
     build: .
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:-dev-docker-session-secret-change-me}
     ports:
       - "8000:8000"
     volumes:

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1419" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme-preference");
+        var theme = t === "light" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.content = theme === "light" ? "#f4f6f9" : "#0f1419";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
+  <title>登录 — PDF / Excel 文本对比</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <h1 class="login-title">登录</h1>
+    <p class="login-hint">使用邮箱收取验证码完成登录</p>
+    <form id="login-form" class="login-form" novalidate onsubmit="return false">
+      <div class="field">
+        <label for="email">邮箱</label>
+        <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com" />
+      </div>
+      <div class="login-row">
+        <button type="button" id="btn-send" class="btn">发送验证码</button>
+        <span id="send-hint" class="field-hint" role="status" aria-live="polite"></span>
+      </div>
+      <div class="field">
+        <label for="code">验证码</label>
+        <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="6 位数字" />
+      </div>
+      <p id="login-err" class="login-err" role="alert" aria-live="assertive"></p>
+      <button type="button" id="btn-login" class="btn primary login-submit">登录</button>
+      <p class="login-divider">或</p>
+      <button type="button" id="btn-guest" class="btn login-guest">访客登录（无需验证码）</button>
+      <p class="login-guest-hint">访客固定以账号 <strong>guest</strong> 登录（与同访客共享数据）；正式账号请使用验证码登录。</p>
+    </form>
+  </div>
+  <script src="/static/login.js"></script>
+</body>
+</html>
