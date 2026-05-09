@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# App runtime data
+data/uploads/*
+!data/uploads/.gitkeep
+data/pdf_cache/*
+!data/pdf_cache/.gitkeep
+data/files_meta.json
+static/records/*
+!static/records/.gitkeep
