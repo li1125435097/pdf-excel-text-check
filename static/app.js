@@ -574,6 +574,42 @@ $("#modal-overlay").addEventListener("click", (e) => {
   if (e.target.id === "modal-overlay") closeModal();
 });
 
+const THEME_STORAGE_KEY = "theme-preference";
+
+function syncThemeToggleUi() {
+  const btn = $("#theme-toggle");
+  if (!btn) return;
+  const isLight = document.documentElement.dataset.theme === "light";
+  btn.setAttribute("aria-checked", isLight ? "true" : "false");
+  btn.setAttribute(
+    "aria-label",
+    isLight ? "主题：白天，点击切换到黑夜" : "主题：黑夜，点击切换到白天",
+  );
+}
+
+function applyThemeMeta() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  meta.content = document.documentElement.dataset.theme === "light" ? "#f4f6f9" : "#0f1419";
+}
+
+function bindThemeToggle() {
+  const btn = $("#theme-toggle");
+  if (!btn) return;
+  syncThemeToggleUi();
+  btn.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch (_) {}
+    applyThemeMeta();
+    syncThemeToggleUi();
+  });
+}
+
+bindThemeToggle();
+
 bindMobileNav();
 bindNav();
 bindUpload();

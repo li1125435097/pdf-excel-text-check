@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1419" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme-preference");
+        var theme = t === "light" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.content = theme === "light" ? "#f4f6f9" : "#0f1419";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
   <title>PDF / Excel 文本对比</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -16,7 +29,12 @@
     <span class="mobile-title">数据对比</span>
   </header>
   <aside id="sidebar" class="sidebar">
-    <div class="brand">数据对比</div>
+    <div class="brand-row">
+      <div class="brand">数据对比</div>
+      <button type="button" id="theme-toggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="主题：黑夜，点击切换到白天" title="白天 / 黑夜">
+        <span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"></span></span>
+      </button>
+    </div>
     <nav>
       <button type="button" class="nav-item active" data-view="files">文件管理</button>
       <button type="button" class="nav-item" data-view="compare">文件数据对比</button>
