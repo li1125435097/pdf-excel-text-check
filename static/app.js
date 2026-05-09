@@ -262,13 +262,15 @@ function renderFileTable() {
   for (const f of filesCache) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><input class="rename-input" data-id="${f.id}" value="${escapeAttr(f.display_name)}" /></td>
+      <td class="file-name-cell">
+        <span class="file-name-display" data-id="${f.id}">${escapeHtml(f.display_name)}</span>
+      </td>
       <td>${escapeHtml(f.ext || "")}</td>
       <td>${formatSize(f.size)}</td>
       <td>${escapeHtml(formatBeijingTime(f.uploaded_at || ""))}</td>
       <td>${escapeHtml(formatBeijingTime(f.modified_at || ""))}</td>
       <td>
-        <button type="button" class="btn small" data-rename="${f.id}">保存名称</button>
+        <button type="button" class="btn small" data-rename="${f.id}" data-rename-step="view">修改名称</button>
         <button type="button" class="btn small danger" data-del="${f.id}">删除</button>
       </td>`;
     tb.appendChild(tr);
@@ -276,7 +278,26 @@ function renderFileTable() {
   tb.querySelectorAll("[data-rename]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-rename");
+      const step = btn.getAttribute("data-rename-step");
+      if (step === "view") {
+        const span = tb.querySelector(`span.file-name-display[data-id="${id}"]`);
+        if (!span) return;
+        const td = span.closest(".file-name-cell");
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.className = "rename-input";
+        inp.dataset.id = id;
+        inp.value = span.textContent;
+        td.innerHTML = "";
+        td.appendChild(inp);
+        inp.focus();
+        inp.select();
+        btn.textContent = "保存名称";
+        btn.setAttribute("data-rename-step", "edit");
+        return;
+      }
       const inp = tb.querySelector(`input.rename-input[data-id="${id}"]`);
+      if (!inp) return;
       try {
         await api(`/api/files/${id}`, { method: "PATCH", body: JSON.stringify({ display_name: inp.value }) });
         await refreshFiles();
@@ -469,6 +490,19 @@ function setDropzoneUploading(on) {
   overlay.classList.toggle("hidden", !on);
 }
 
+function bindFileTableShortcuts() {
+  const tb = $("#file-tbody");
+  if (!tb) return;
+  tb.addEventListener("keydown", (e) => {
+    if (!e.target.matches?.("input.rename-input")) return;
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    const btn = tb.querySelector(`button[data-rename="${id}"][data-rename-step="edit"]`);
+    btn?.click();
+  });
+}
+
 function bindUpload() {
   const dz = $("#dropzone");
   const input = $("#file-input");
@@ -613,5 +647,6 @@ bindThemeToggle();
 bindMobileNav();
 bindNav();
 bindUpload();
+bindFileTableShortcuts();
 bindCompareSelectors();
 refreshFiles().catch((e) => alert(e.message));
