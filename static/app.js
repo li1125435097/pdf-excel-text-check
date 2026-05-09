@@ -374,6 +374,53 @@ async function loadRecords() {
   });
 }
 
+function closeMobileNav() {
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  const btnMenu = document.getElementById("btn-menu");
+  if (!sidebar || !sidebar.classList.contains("open")) return;
+  sidebar.classList.remove("open");
+  if (backdrop) {
+    backdrop.classList.add("hidden");
+    backdrop.setAttribute("aria-hidden", "true");
+  }
+  if (btnMenu) btnMenu.setAttribute("aria-expanded", "false");
+  document.body.style.overflow = "";
+}
+
+function bindMobileNav() {
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  const btnMenu = document.getElementById("btn-menu");
+  if (!sidebar || !backdrop || !btnMenu) return;
+
+  function openMenu() {
+    sidebar.classList.add("open");
+    backdrop.classList.remove("hidden");
+    backdrop.setAttribute("aria-hidden", "false");
+    btnMenu.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+  }
+
+  btnMenu.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) closeMobileNav();
+    else openMenu();
+  });
+  backdrop.addEventListener("click", closeMobileNav);
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) closeMobileNav();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const modal = $("#modal-overlay");
+    if (modal && !modal.classList.contains("hidden")) {
+      closeModal();
+      return;
+    }
+    closeMobileNav();
+  });
+}
+
 function bindNav() {
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -384,6 +431,7 @@ function bindNav() {
       $(`#view-${v}`).classList.remove("hidden");
       if (v === "records") loadRecords().catch((e) => alert(e.message));
       if (v === "compare") schedulePreviews();
+      closeMobileNav();
     });
   });
 }
@@ -503,6 +551,7 @@ $("#modal-overlay").addEventListener("click", (e) => {
   if (e.target.id === "modal-overlay") closeModal();
 });
 
+bindMobileNav();
 bindNav();
 bindUpload();
 bindCompareSelectors();

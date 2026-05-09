@@ -2,12 +2,20 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1419" />
   <title>PDF / Excel 文本对比</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <aside class="sidebar">
+  <div id="sidebar-backdrop" class="sidebar-backdrop hidden" aria-hidden="true"></div>
+  <header class="mobile-header">
+    <button type="button" id="btn-menu" class="btn-menu" aria-label="打开菜单" aria-expanded="false" aria-controls="sidebar">
+      <span class="btn-menu-icon" aria-hidden="true"></span>
+    </button>
+    <span class="mobile-title">数据对比</span>
+  </header>
+  <aside id="sidebar" class="sidebar">
     <div class="brand">数据对比</div>
     <nav>
       <button type="button" class="nav-item active" data-view="files">文件管理</button>
@@ -49,11 +57,13 @@
 
     <section id="view-compare" class="view hidden">
       <h1>文件数据对比</h1>
-      <p class="hint">为每个文件选择筛选规则后点击「开始对比」。结果在弹窗中逐条展示，并写入 static/records。
-      <button type="button" id="btn-compare" class="btn primary" aria-busy="false">
-        <span class="btn-spinner" aria-hidden="true"></span>
-        <span class="btn-label">开始对比</span>
-      </button></p>
+      <p class="hint">为每个文件选择筛选规则后点击「开始对比」。结果在弹窗中逐条展示，并写入 static/records。</p>
+      <div class="compare-actions">
+        <button type="button" id="btn-compare" class="btn primary" aria-busy="false">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <span class="btn-label">开始对比</span>
+        </button>
+      </div>
       <div class="compare-grid">
         <div class="card">
           <h3>文件 A（左侧）</h3>

@@ -17,10 +17,21 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", sans-serif;
   background: var(--bg);
   color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 移动端顶栏、抽屉导航（宽屏下隐藏，见文末 media） */
+.mobile-header {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
 }
 
 .sidebar {
@@ -86,6 +97,10 @@ h1 {
   color: var(--muted);
   margin: 0 0 1.25rem;
   font-size: 0.9rem;
+}
+
+.compare-actions {
+  margin: 0 0 1.25rem;
 }
 
 .dropzone {
@@ -412,4 +427,157 @@ tr:last-child td {
 .rename-input {
   width: 100%;
   max-width: 220px;
+}
+
+@media (max-width: 768px) {
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    min-height: 3rem;
+    padding: env(safe-area-inset-top, 0) 0.75rem 0.5rem 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    background: var(--sidebar);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mobile-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .btn-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-menu-icon {
+    display: block;
+    width: 1.35rem;
+    height: 2px;
+    background: currentColor;
+    border-radius: 1px;
+    box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    background: rgba(0, 0, 0, 0.45);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .sidebar-backdrop.hidden {
+    display: none;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 86vw);
+    z-index: 45;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    border-right: 1px solid var(--border);
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    box-shadow: none;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.45);
+  }
+
+  .main {
+    width: 100%;
+    padding: calc(3rem + env(safe-area-inset-top, 0) + 0.35rem) 1rem 1.25rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  h1 {
+    font-size: 1.2rem;
+  }
+
+  .dropzone {
+    padding: 1.25rem 1rem;
+  }
+
+  .dropzone-content {
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .btn {
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn.small {
+    min-height: 2.25rem;
+    padding: 0.35rem 0.55rem;
+  }
+
+  .nav-item {
+    min-height: 2.75rem;
+    padding: 0.65rem 1rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  th,
+  td {
+    padding: 0.55rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .card {
+    padding: 0.9rem 1rem;
+  }
+
+  .modal-overlay {
+    padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+      max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+    align-items: stretch;
+  }
+
+  .modal {
+    max-height: min(92vh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 1.5rem));
+    margin: auto 0;
+  }
+
+  .modal-close {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
