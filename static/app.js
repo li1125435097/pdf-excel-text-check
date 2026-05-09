@@ -213,13 +213,16 @@ async function refreshSidePreview(side) {
   }
 }
 
-function syncCompareRules() {
-  const left = $("#left-file");
-  const right = $("#right-file");
-  const lf = filesCache.find((x) => x.id === left.value);
-  const rf = filesCache.find((x) => x.id === right.value);
-  renderRules($("#left-rules"), lf, "left");
-  renderRules($("#right-rules"), rf, "right");
+function renderCompareRulesForSide(side) {
+  const sel = $(`#${side}-file`);
+  const f = filesCache.find((x) => x.id === sel.value);
+  renderRules($(`#${side}-rules`), f, side);
+}
+
+/** 文件列表刷新后：两侧规则与当前选中文件对齐 */
+function syncBothCompareRules() {
+  renderCompareRulesForSide("left");
+  renderCompareRulesForSide("right");
   schedulePreviews();
 }
 
@@ -289,7 +292,7 @@ function populateFileSelects() {
   };
   mkOpts(left);
   mkOpts(right);
-  syncCompareRules();
+  syncBothCompareRules();
 }
 
 function escapeHtml(s) {
@@ -441,8 +444,14 @@ async function uploadFiles(fileList) {
 function bindCompareSelectors() {
   const left = $("#left-file");
   const right = $("#right-file");
-  left.addEventListener("change", syncCompareRules);
-  right.addEventListener("change", syncCompareRules);
+  left.addEventListener("change", () => {
+    renderCompareRulesForSide("left");
+    schedulePreviews();
+  });
+  right.addEventListener("change", () => {
+    renderCompareRulesForSide("right");
+    schedulePreviews();
+  });
 
   const compareView = $("#view-compare");
   compareView.addEventListener("input", (e) => {
