@@ -1,4 +1,1 @@
-!/bin/bash
-# 停止程序
-source .venv/bin/activate
 pkill -f "uvicorn app.main:app"
