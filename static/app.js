@@ -46,6 +46,22 @@ function skipFieldHtml(prefix) {
     <input type="number" id="${prefix}-skip" value="0" min="0" step="1" /></div>`;
 }
 
+/** 各文件类型通用：默认保留空格 */
+function removeSpacesFieldHtml(prefix) {
+  const name = `${prefix}-remove-spaces`;
+  return `<div class="field field-radio"><label>空格处理</label>
+    <div class="radio-row">
+      <label><input type="radio" name="${name}" id="${prefix}-remove-spaces-keep" value="0" /> 保留空格</label>
+      <label><input type="radio" name="${name}" id="${prefix}-remove-spaces-strip" value="1" checked /> 移除空格</label>
+    </div></div>`;
+}
+
+function readRemoveSpaces(prefix) {
+  const el = document.querySelector(`input[name="${prefix}-remove-spaces"]:checked`);
+  if (!el) return false;
+  return el.value === "1";
+}
+
 function readSkipFirst(prefix) {
   const el = document.getElementById(`${prefix}-skip`);
   if (!el) return 0;
@@ -64,6 +80,7 @@ function rulesHtml(kind, prefix) {
       <div class="field"><label>正则（可选，匹配到的子串参与对比）</label>
         <input type="text" id="${prefix}-regex" placeholder="留空则取整格文本" /></div>
       ${skipFieldHtml(prefix)}
+      ${removeSpacesFieldHtml(prefix)}
       <p class="field-hint">Excel：按列自上而下提取非空单元格。</p>`;
   }
   if (kind === "pdf") {
@@ -73,6 +90,7 @@ function rulesHtml(kind, prefix) {
       <div class="field"><label>正则（可选）</label>
         <input type="text" id="${prefix}-regex" placeholder="留空则取整行文本" /></div>
       ${skipFieldHtml(prefix)}
+      ${removeSpacesFieldHtml(prefix)}
       <p class="field-hint">PDF：按页提取文本后按行切分，再取指定行。</p>`;
   }
   if (kind === "text") {
@@ -80,9 +98,11 @@ function rulesHtml(kind, prefix) {
       <div class="field"><label>正则（可选，不匹配的行会跳过）</label>
         <input type="text" id="${prefix}-regex" placeholder="留空则取所有非空行" /></div>
       ${skipFieldHtml(prefix)}
+      ${removeSpacesFieldHtml(prefix)}
       <p class="field-hint">纯文本：按行读取；有正则时只保留能匹配的行（取 group(0)）。</p>`;
   }
   return `${skipFieldHtml(prefix)}
+    ${removeSpacesFieldHtml(prefix)}
     <p class="field-hint">该扩展名暂无专用规则，请上传 xlsx/xls、pdf 或 txt/csv。</p>`;
 }
 
@@ -98,6 +118,7 @@ function renderRules(container, file, prefix) {
 function collectRules(prefix, file) {
   const k = extKind(file.ext);
   const skip = readSkipFirst(prefix);
+  const remove_spaces = readRemoveSpaces(prefix);
   if (k === "excel") {
     const sheet = parseInt($(`#${prefix}-sheet`).value, 10);
     const colRaw = $(`#${prefix}-col`).value.trim() || "A";
@@ -108,6 +129,7 @@ function collectRules(prefix, file) {
       column: col,
       regex: regex || null,
       skip_first: skip,
+      remove_spaces,
     };
   }
   if (k === "pdf") {
@@ -121,13 +143,14 @@ function collectRules(prefix, file) {
       line_indices: line_indices.length ? line_indices : [1],
       regex: regex || null,
       skip_first: skip,
+      remove_spaces,
     };
   }
   if (k === "text") {
     const regex = $(`#${prefix}-regex`).value.trim();
-    return { regex: regex || null, skip_first: skip };
+    return { regex: regex || null, skip_first: skip, remove_spaces };
   }
-  return { skip_first: skip };
+  return { skip_first: skip, remove_spaces };
 }
 
 async function api(path, opts = {}) {

@@ -297,6 +297,28 @@ tr:last-child td {
   color: var(--text);
 }
 
+.rules .field-radio input[type="radio"] {
+  width: auto;
+  padding: 0;
+  margin: 0 0.35rem 0 0;
+  accent-color: var(--accent, #3b82f6);
+}
+
+.rules .radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.rules .radio-row label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
 .rules .field-hint {
   font-size: 0.75rem;
   color: var(--muted);

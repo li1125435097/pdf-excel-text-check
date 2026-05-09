@@ -130,9 +130,14 @@ def extract_text_file(path: Path, regex_pattern: str | None) -> list[str]:
     return out
 
 
+def _strip_all_whitespace(s: str) -> str:
+    return "".join(str(s).split())
+
+
 def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
     r = dict(rules or {})
     skip_raw = r.pop("skip_first", 0)
+    remove_spaces = bool(r.pop("remove_spaces", True))
     try:
         skip = max(0, int(skip_raw))
     except (TypeError, ValueError):
@@ -159,5 +164,8 @@ def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
         vals = extract_text_file(path, r.get("regex") or None)
     else:
         raise ValueError(f"不支持的文件类型: {ext}")
+
+    if remove_spaces:
+        vals = [_strip_all_whitespace(x) for x in vals]
 
     return vals[skip:]
