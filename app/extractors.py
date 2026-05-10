@@ -5,7 +5,8 @@ from typing import Any
 import pandas as pd
 import pdfplumber
 
-from app.pdf_cache import load_pdf_lines_cache
+from app.pdf_cache import load_pdf_lines_cache, write_pdf_cache_pages
+from app.pdf_pages import extract_pdf_pages_lines
 
 
 def file_kind(ext: str) -> str:
@@ -89,11 +90,9 @@ def extract_pdf(
     cached = load_pdf_lines_cache(name)
     if cached is not None:
         return extract_pdf_lines_from_pages(cached, line_indices_1based)
-    pages_lines: list[list[str]] = []
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
-            text = page.extract_text() or ""
-            pages_lines.append(text.splitlines())
+    pages_lines = extract_pdf_pages_lines(path)
+    if stored_name:
+        write_pdf_cache_pages(pages_lines, stored_name)
     return extract_pdf_lines_from_pages(pages_lines, line_indices_1based)
 
 
@@ -131,7 +130,13 @@ def _apply_remove_spaces_then_regex(
     return out
 
 
-def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
+def extract_by_rules(
+    path: Path,
+    ext: str,
+    rules: dict[str, Any],
+    *,
+    stored_name: str | None = None,
+) -> list[str]:
     r = dict(rules or {})
     skip_raw = r.pop("skip_first", 0)
     remove_spaces = bool(r.pop("remove_spaces", True))
@@ -157,7 +162,7 @@ def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
             line_indices = [int(x) for x in raw_lines]
         if not line_indices:
             line_indices = [1]
-        vals = extract_pdf(path, line_indices)
+        vals = extract_pdf(path, line_indices, stored_name=stored_name)
     elif kind == "text":
         vals = extract_text_file(path)
     else:
