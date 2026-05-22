@@ -304,7 +304,12 @@ def api_preview(body: PreviewBody, auth: AuthUser = Depends(get_auth_user)) -> d
     if file_kind(rec.get("ext", "")) == "unknown":
         raise HTTPException(400, "该文件类型不支持预览")
     try:
-        vals = extract_by_rules(path, rec.get("ext", ""), body.rules)
+        vals = extract_by_rules(
+            path,
+            rec.get("ext", ""),
+            body.rules,
+            stored_name=rec.get("stored_name"),
+        )
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
     except Exception as e:
@@ -325,8 +330,18 @@ def api_compare(body: CompareBody, auth: AuthUser = Depends(get_auth_user)) -> d
     if not lp.exists() or not rp.exists():
         raise HTTPException(400, "磁盘上找不到文件")
     try:
-        left_values = extract_by_rules(lp, left.get("ext", ""), body.left_rules)
-        right_values = extract_by_rules(rp, right.get("ext", ""), body.right_rules)
+        left_values = extract_by_rules(
+            lp,
+            left.get("ext", ""),
+            body.left_rules,
+            stored_name=left.get("stored_name"),
+        )
+        right_values = extract_by_rules(
+            rp,
+            right.get("ext", ""),
+            body.right_rules,
+            stored_name=right.get("stored_name"),
+        )
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
     except Exception as e:

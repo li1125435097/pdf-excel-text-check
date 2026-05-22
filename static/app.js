@@ -55,9 +55,9 @@ function extKind(ext) {
   return "unknown";
 }
 
-function skipFieldHtml(prefix) {
+function skipFieldHtml(prefix, idSuffix = "skip") {
   return `<div class="field"><label>跳过前几条（筛选后再切片）</label>
-    <input type="number" id="${prefix}-skip" value="0" min="0" step="1" /></div>`;
+    <input type="number" id="${prefix}-${idSuffix}" value="0" min="0" step="1" /></div>`;
 }
 
 /** 各文件类型通用：默认保留空格 */
@@ -77,16 +77,97 @@ function readRemoveSpaces(prefix) {
 }
 
 function readSkipFirst(prefix) {
-  const el = document.getElementById(`${prefix}-skip`);
+  const id = readMatchMode(prefix) === "regex" ? `${prefix}-regex-skip` : `${prefix}-skip`;
+  const el = document.getElementById(id);
   if (!el) return 0;
   const v = parseInt(String(el.value).trim(), 10);
   if (!Number.isFinite(v) || v < 0) return 0;
   return v;
 }
 
+function dedupeDuplicatesFieldHtml(prefix) {
+  const name = `${prefix}-dedupe-duplicates`;
+  return `<div class="field field-radio"><label>去除重复数据</label>
+    <div class="radio-row">
+      <label><input type="radio" name="${name}" id="${prefix}-dedupe-yes" value="1" checked /> 是</label>
+      <label><input type="radio" name="${name}" id="${prefix}-dedupe-no" value="0" /> 否</label>
+    </div></div>`;
+}
+
+function readDedupeDuplicates(prefix) {
+  const el = document.querySelector(`input[name="${prefix}-dedupe-duplicates"]:checked`);
+  if (!el) return true;
+  return el.value === "1";
+}
+
+function sortMatchesFieldHtml(prefix) {
+  const name = `${prefix}-sort-matches`;
+  return `<div class="field field-radio"><label>数据排序（处理两个文件数据顺序不一致，两个文件都要开启排序）</label>
+    <div class="radio-row">
+      <label><input type="radio" name="${name}" id="${prefix}-sort-yes" value="1" /> 是</label>
+      <label><input type="radio" name="${name}" id="${prefix}-sort-no" value="0" checked /> 否</label>
+    </div></div>`;
+}
+
+function readSortMatches(prefix) {
+  const el = document.querySelector(`input[name="${prefix}-sort-matches"]:checked`);
+  if (!el) return false;
+  return el.value === "1";
+}
+
+function regexRulesHtml(prefix) {
+  return `
+    <div class="field"><label>全文匹配正则表达式</label>
+      <input type="text" id="${prefix}-fulltext-regex" placeholder="在文件全文中查找，可匹配多处" /></div>
+    ${dedupeDuplicatesFieldHtml(prefix)}
+    ${sortMatchesFieldHtml(prefix)}
+    ${skipFieldHtml(prefix, "regex-skip")}
+    <p class="field-hint">全文正则匹配 → 过滤重复（可选）→ 排序（可选，正序）→ 跳过前几条切片。PDF 使用上传时生成的缓存 JSON 文本。</p>`;
+}
+
+function rulesTabsShell(prefix, normalInner) {
+  return `
+    <div class="rules-tabs" data-prefix="${prefix}">
+      <div class="rules-tab-bar" role="tablist">
+        <button type="button" class="rules-tab active" role="tab" data-tab="normal" aria-selected="true">普通匹配</button>
+        <button type="button" class="rules-tab" role="tab" data-tab="regex" aria-selected="false">正则匹配</button>
+      </div>
+      <div class="rules-tab-panel" data-panel="normal" role="tabpanel">${normalInner}</div>
+      <div class="rules-tab-panel hidden" data-panel="regex" role="tabpanel">${regexRulesHtml(prefix)}</div>
+    </div>`;
+}
+
+function readMatchMode(prefix) {
+  const root = document.querySelector(`.rules-tabs[data-prefix="${prefix}"]`);
+  if (!root) return "normal";
+  const active = root.querySelector(".rules-tab.active");
+  return active?.getAttribute("data-tab") === "regex" ? "regex" : "normal";
+}
+
+function bindRulesTabs(container) {
+  container.querySelectorAll(".rules-tabs").forEach((root) => {
+    const prefix = root.getAttribute("data-prefix");
+    root.querySelectorAll(".rules-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-tab");
+        root.querySelectorAll(".rules-tab").forEach((b) => {
+          const on = b.getAttribute("data-tab") === tab;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        root.querySelectorAll(".rules-tab-panel").forEach((panel) => {
+          panel.classList.toggle("hidden", panel.getAttribute("data-panel") !== tab);
+        });
+        schedulePreviews();
+      });
+    });
+  });
+}
+
 function rulesHtml(kind, prefix) {
+  let normal = "";
   if (kind === "excel") {
-    return `
+    normal = `
       <div class="field"><label>Sheet 序号（从 0 开始）</label>
         <input type="number" id="${prefix}-sheet" value="0" min="0" /></div>
       <div class="field"><label>列号（如 A、B 或 1 表示第 1 列）</label>
@@ -96,9 +177,8 @@ function rulesHtml(kind, prefix) {
       ${skipFieldHtml(prefix)}
       ${removeSpacesFieldHtml(prefix)}
       <p class="field-hint">Excel：按列自上而下提取非空单元格。</p>`;
-  }
-  if (kind === "pdf") {
-    return `
+  } else if (kind === "pdf") {
+    normal = `
       <div class="field"><label>每页行号（1 开始，逗号分隔，适用于每一页）</label>
         <input type="text" id="${prefix}-lines" value="1" placeholder="例：1,2" /></div>
       <div class="field"><label>格式化正则（可选）</label>
@@ -106,18 +186,19 @@ function rulesHtml(kind, prefix) {
       ${skipFieldHtml(prefix)}
       ${removeSpacesFieldHtml(prefix)}
       <p class="field-hint">PDF：按页提取文本后按行切分，再取指定行。</p>`;
-  }
-  if (kind === "text") {
-    return `
+  } else if (kind === "text") {
+    normal = `
       <div class="field"><label>正则（可选，不匹配的行会跳过）</label>
         <input type="text" id="${prefix}-regex" placeholder="留空则取所有非空行" /></div>
       ${skipFieldHtml(prefix)}
       ${removeSpacesFieldHtml(prefix)}
       <p class="field-hint">纯文本：按行读取；有正则时只保留能匹配的行（取 group(0)）。</p>`;
-  }
-  return `${skipFieldHtml(prefix)}
+  } else {
+    normal = `${skipFieldHtml(prefix)}
     ${removeSpacesFieldHtml(prefix)}
     <p class="field-hint">该扩展名暂无专用规则，请上传 xlsx/xls、pdf 或 txt/csv。</p>`;
+  }
+  return rulesTabsShell(prefix, normal);
 }
 
 function renderRules(container, file, prefix) {
@@ -127,23 +208,34 @@ function renderRules(container, file, prefix) {
   }
   const k = extKind(file.ext);
   container.innerHTML = rulesHtml(k, prefix);
+  bindRulesTabs(container);
 }
 
 function collectRules(prefix, file) {
   const k = extKind(file.ext);
+  if (readMatchMode(prefix) === "regex") {
+    const fulltext_regex = ($(`#${prefix}-fulltext-regex`) || { value: "" }).value.trim();
+    return {
+      match_mode: "regex",
+      fulltext_regex: fulltext_regex || null,
+      dedupe_duplicates: readDedupeDuplicates(prefix),
+      sort_matches: readSortMatches(prefix),
+      skip_first: readSkipFirst(prefix),
+    };
+  }
   const skip = readSkipFirst(prefix);
   const remove_spaces = readRemoveSpaces(prefix);
+  const base = { match_mode: "normal", skip_first: skip, remove_spaces };
   if (k === "excel") {
     const sheet = parseInt($(`#${prefix}-sheet`).value, 10);
     const colRaw = $(`#${prefix}-col`).value.trim() || "A";
     const col = /^\d+$/.test(colRaw) ? parseInt(colRaw, 10) : colRaw;
     const regex = $(`#${prefix}-regex`).value.trim();
     return {
+      ...base,
       sheet_index: Number.isFinite(sheet) ? sheet : 0,
       column: col,
       regex: regex || null,
-      skip_first: skip,
-      remove_spaces,
     };
   }
   if (k === "pdf") {
@@ -154,17 +246,16 @@ function collectRules(prefix, file) {
       .filter((n) => Number.isFinite(n) && n > 0);
     const regex = $(`#${prefix}-regex`).value.trim();
     return {
+      ...base,
       line_indices: line_indices.length ? line_indices : [1],
       regex: regex || null,
-      skip_first: skip,
-      remove_spaces,
     };
   }
   if (k === "text") {
     const regex = $(`#${prefix}-regex`).value.trim();
-    return { regex: regex || null, skip_first: skip, remove_spaces };
+    return { ...base, regex: regex || null };
   }
-  return { skip_first: skip, remove_spaces };
+  return base;
 }
 
 async function api(path, opts = {}) {
@@ -630,6 +721,9 @@ function bindCompareSelectors() {
   });
   compareView.addEventListener("change", (e) => {
     if (e.target?.closest?.("#left-rules, #right-rules")) schedulePreviews();
+  });
+  compareView.addEventListener("click", (e) => {
+    if (e.target?.closest?.(".rules-tab")) schedulePreviews();
   });
 
   const btnCompare = $("#btn-compare");

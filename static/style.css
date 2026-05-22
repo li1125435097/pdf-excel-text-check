@@ -381,6 +381,43 @@ tr:last-child td {
   color: var(--text);
 }
 
+.rules-tabs {
+  margin-top: 0.5rem;
+}
+
+.rules-tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rules-tab {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+
+.rules-tab:hover {
+  color: var(--text);
+}
+
+.rules-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent, #3b82f6);
+  font-weight: 600;
+}
+
+.rules-tab-panel.hidden {
+  display: none;
+}
+
 .rules .field {
   margin-bottom: 0.75rem;
 }

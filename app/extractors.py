@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -5,7 +6,7 @@ from typing import Any
 import pandas as pd
 import pdfplumber
 
-from app.pdf_cache import load_pdf_lines_cache
+from app.pdf_cache import build_pages_lines, cache_path_for_stored_name, load_pdf_lines_cache
 
 
 def file_kind(ext: str) -> str:
@@ -131,8 +132,92 @@ def _apply_remove_spaces_then_regex(
     return out
 
 
-def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
+def get_full_text_for_regex(path: Path, ext: str, *, stored_name: str | None = None) -> str:
+    """全文正则模式：PDF 优先使用缓存 JSON 字符串，其余类型读文件全文本。"""
+    kind = file_kind(ext)
+    if kind == "pdf":
+        name = stored_name or path.name
+        cache_path = cache_path_for_stored_name(name)
+        if cache_path.exists():
+            return cache_path.read_text(encoding="utf-8")
+        pages = build_pages_lines(path)
+        return json.dumps(
+            {"version": 1, "stored_name": name, "pages": pages},
+            ensure_ascii=False,
+        )
+    if kind == "text":
+        return path.read_text(encoding="utf-8", errors="replace")
+    if kind == "excel":
+        parts: list[str] = []
+        xl = pd.ExcelFile(path)
+        for sheet in xl.sheet_names:
+            df = pd.read_excel(path, sheet_name=sheet, header=None, dtype=object)
+            for v in df.to_numpy().flatten():
+                if v is None or (isinstance(v, float) and pd.isna(v)):
+                    continue
+                s = str(v).strip()
+                if s:
+                    parts.append(s)
+        return "\n".join(parts)
+    raise ValueError(f"不支持的文件类型: {ext}")
+
+
+def extract_by_fulltext_regex(
+    path: Path,
+    ext: str,
+    rules: dict[str, Any],
+    *,
+    stored_name: str | None = None,
+) -> list[str]:
     r = dict(rules or {})
+    skip_raw = r.get("skip_first", 0)
+    regex_raw = r.get("fulltext_regex") or r.get("regex")
+    if not regex_raw or not str(regex_raw).strip():
+        raise ValueError("请填写全文匹配正则表达式")
+    try:
+        skip = max(0, int(skip_raw))
+    except (TypeError, ValueError):
+        skip = 0
+    dedupe = r.get("dedupe_duplicates", True)
+    if isinstance(dedupe, str):
+        dedupe = dedupe.strip().lower() not in ("0", "false", "no", "否")
+    else:
+        dedupe = bool(dedupe) if dedupe is not None else True
+
+    sort_matches = r.get("sort_matches", False)
+    if isinstance(sort_matches, str):
+        sort_matches = sort_matches.strip().lower() in ("1", "true", "yes", "是")
+    else:
+        sort_matches = bool(sort_matches) if sort_matches is not None else False
+
+    pattern = re.compile(str(regex_raw).strip())
+    full_text = get_full_text_for_regex(path, ext, stored_name=stored_name)
+    matches = [m.group(0) for m in pattern.finditer(full_text)]
+    if dedupe:
+        seen: set[str] = set()
+        unique: list[str] = []
+        for s in matches:
+            if s in seen:
+                continue
+            seen.add(s)
+            unique.append(s)
+        matches = unique
+    if sort_matches:
+        matches.sort()
+    return matches[skip:]
+
+
+def extract_by_rules(
+    path: Path,
+    ext: str,
+    rules: dict[str, Any],
+    *,
+    stored_name: str | None = None,
+) -> list[str]:
+    r = dict(rules or {})
+    if r.get("match_mode") == "regex":
+        return extract_by_fulltext_regex(path, ext, r, stored_name=stored_name)
+
     skip_raw = r.pop("skip_first", 0)
     remove_spaces = bool(r.pop("remove_spaces", True))
     regex_raw = r.get("regex") or None
@@ -157,7 +242,7 @@ def extract_by_rules(path: Path, ext: str, rules: dict[str, Any]) -> list[str]:
             line_indices = [int(x) for x in raw_lines]
         if not line_indices:
             line_indices = [1]
-        vals = extract_pdf(path, line_indices)
+        vals = extract_pdf(path, line_indices, stored_name=stored_name)
     elif kind == "text":
         vals = extract_text_file(path)
     else:
