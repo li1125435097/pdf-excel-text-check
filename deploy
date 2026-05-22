@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+REMOTE="ali"
+DEPLOY_DIR="/root/pdf-excel-text-check"
+
+ssh "$REMOTE" bash -s <<EOF
+set -euo pipefail
+cd "$DEPLOY_DIR"
+
+echo "==> stop"
+bash stop
+
+echo "==> git pull"
+git pull
+
+echo "==> ser-start"
+bash ser-start
+
+echo "==> deploy done"
+EOF

@@ -6,4 +6,4 @@ export SMTP_PASSWORD="..."
 
 # 启动程序
 source .venv/bin/activate
-uvicorn app.main:app --reload --port 8000 &
+uvicorn app.main:app --reload --port 8000

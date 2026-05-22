@@ -74,9 +74,25 @@ class AuthUser:
         return is_super_admin(self.email) and not self.is_guest
 
 
+def _static_asset_version(filename: str) -> str:
+    path = static_dir / filename
+    try:
+        return str(int(path.stat().st_mtime))
+    except OSError:
+        return "0"
+
+
+def _html_with_static_versions(template_name: str) -> HTMLResponse:
+    path = BASE_DIR / "templates" / template_name
+    html = path.read_text(encoding="utf-8")
+    for asset in ("style.css", "app.js", "login.js"):
+        v = _static_asset_version(asset)
+        html = html.replace(f'"/static/{asset}"', f'"/static/{asset}?v={v}"')
+    return HTMLResponse(html)
+
+
 def _login_html() -> HTMLResponse:
-    path = BASE_DIR / "templates" / "login.html"
-    return HTMLResponse(path.read_text(encoding="utf-8"))
+    return _html_with_static_versions("login.html")
 
 
 def get_auth_user(request: Request) -> AuthUser:
@@ -139,8 +155,7 @@ def _list_record_summaries_filtered(user_email: str, super_u: bool) -> list[dict
 
 
 def _index_html() -> HTMLResponse:
-    html_path = BASE_DIR / "templates" / "index.html"
-    return HTMLResponse(html_path.read_text(encoding="utf-8"))
+    return _html_with_static_versions("index.html")
 
 
 def _redirect_if_not_logged_in(request: Request) -> RedirectResponse | None:
