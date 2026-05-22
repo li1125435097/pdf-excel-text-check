@@ -2,7 +2,7 @@
 export SMTP_HOST=smtp.qq.com
 export SMTP_PORT=587
 export SMTP_USER="3162853966@qq.com"
-export SMTP_PASSWORD="..."
+export SMTP_PASSWORD="fgbgulfyftxrdfaf"
 
 # 启动程序
 source .venv/bin/activate
