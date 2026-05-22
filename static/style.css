@@ -339,6 +339,16 @@ tr:last-child td {
   border-bottom: none;
 }
 
+td.td-success {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+td.td-danger {
+  color: var(--bad);
+  font-weight: 600;
+}
+
 .compare-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

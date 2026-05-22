@@ -484,12 +484,12 @@ function showCompareResult(data) {
       : "";
   const html = `
     <h2 style="margin-top:0;font-size:1.1rem">对比结果</h2>
-    ${lines.join("")}
     <div class="summary">
       共对比 <strong>${data.total}</strong> 条；成功 <strong style="color:var(--ok)">${data.success}</strong>；
       失败 <strong style="color:var(--bad)">${data.failed}</strong>；成功率 <strong>${data.success_rate}%</strong>
     </div>
-    ${banner}`;
+    ${banner}
+    ${lines.join("")}`;
   openModal(html);
 }
 
@@ -505,8 +505,8 @@ async function loadRecords() {
       <td>${escapeHtml(formatBeijingTime(r.compared_at || ""))}</td>
       <td>${r.total}</td>
       <td>${r.success}</td>
-      <td>${r.failed}</td>
-      <td>${r.success_rate}%</td>
+      <td class="${r.failed > 0 ? "td-danger" : ""}">${r.failed}</td>
+      <td class="${Number(r.success_rate) === 100 ? "td-success" : "td-danger"}">${r.success_rate}%</td>
       <td>${escapeHtml(r.owner_email || "—")}</td>
       <td><button type="button" class="btn small" data-record="${r.id}">详情</button></td>`;
     tb.appendChild(tr);
